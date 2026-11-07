@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  headings,
   parseCSVFile,
   validateAndParseCSV,
   validateRecords,
@@ -8,6 +9,10 @@ import {
 
 describe("parseCSVFile", () => {
   const fixturesDirectory = join(__dirname, "..", "fixtures", "csvFiles");
+
+  it("defines the canonical CSV headings", () => {
+    expect(headings).toEqual(["JobId", "Name", "Address", "Contact"]);
+  });
 
   it("parses Customer1.csv, including quoted commas and escaped quotes", () => {
     const csv = readFileSync(join(fixturesDirectory, "Customer1.csv"));
@@ -94,6 +99,19 @@ describe("parseCSVFile", () => {
 });
 
 describe("validateRecords", () => {
+  it("rejects values that are not record objects", () => {
+    const records = ["not a record", null, []];
+
+    const result = validateRecords(records);
+
+    expect(result.validRecords).toEqual([]);
+    expect(result.failedRecords).toEqual([
+      { record: "not a record", errors: ["Record must be an object"] },
+      { record: null, errors: ["Record must be an object"] },
+      { record: [], errors: ["Record must be an object"] },
+    ]);
+  });
+
   it("casts JobId and numeric Contact to strings and normalizes null Contact", () => {
     const result = validateRecords([
       { JobId: 123, Name: "Adam", Address: "London", Contact: 123456 },
