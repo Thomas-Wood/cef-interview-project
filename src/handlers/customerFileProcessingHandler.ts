@@ -39,9 +39,9 @@ export async function handler(event: unknown): Promise<void> {
     const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, " ")); // Regex replaces "+" with " ".
 
     // Check file type is csv
-    if (!key.endsWith(".csv")) {
+    if (!key.toLowerCase().endsWith(".csv")) {
       console.error("Invalid file: Not a CSV file", { bucket, key });
-      return;
+      continue;
     }
 
     // Get customer name from file name

@@ -174,6 +174,45 @@ describe("customer file processing handler", () => {
     expect(validateAndParseCSV).not.toHaveBeenCalled();
   });
 
+  it("continues processing CSV files after a non-CSV event record", async () => {
+    const error = jest.spyOn(console, "error").mockImplementation();
+    const event = s3Event("CustomerA.txt");
+    event.Records.push(
+      s3Event("CustomerB.csv").Records[0],
+    );
+
+    await expect(handler(event)).resolves.toBeUndefined();
+
+    expect(error).toHaveBeenCalledWith("Invalid file: Not a CSV file", {
+      bucket: "customer-files",
+      key: "CustomerA.txt",
+    });
+    expect(s3Send).toHaveBeenCalledTimes(1);
+    expect(GetObjectCommand).toHaveBeenCalledWith({
+      Bucket: "customer-files",
+      Key: "CustomerB.csv",
+    });
+    const dataStore = jest.mocked(JobDataStore).mock.results[0].value;
+    expect(dataStore.writeJobRecords).toHaveBeenCalledWith(
+      [validRecord],
+      "CustomerB",
+    );
+  });
+
+  it("processes CSV files with an uppercase extension", async () => {
+    await expect(handler(s3Event("CustomerA.CSV"))).resolves.toBeUndefined();
+
+    expect(GetObjectCommand).toHaveBeenCalledWith({
+      Bucket: "customer-files",
+      Key: "CustomerA.CSV",
+    });
+    const dataStore = jest.mocked(JobDataStore).mock.results[0].value;
+    expect(dataStore.writeJobRecords).toHaveBeenCalledWith(
+      [validRecord],
+      "CustomerA",
+    );
+  });
+
   // Main hapy path test
   it("validates and stores valid records using the decoded customer filename", async () => {
     const warn = jest.spyOn(console, "warn").mockImplementation();
