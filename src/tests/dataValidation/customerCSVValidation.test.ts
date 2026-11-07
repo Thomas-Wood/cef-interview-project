@@ -175,6 +175,83 @@ describe("validateRecords", () => {
     ]);
   });
 
+  it("rejects an empty JobId", () => {
+    const record = { JobId: "", Name: "Adam", Address: "London" };
+    const result = validateRecords([record]);
+
+    expect(result.validRecords).toEqual([]);
+    expect(result.failedRecords).toEqual([
+      { record, errors: ["JobId is required"] },
+    ]);
+  });
+
+  it("rejects a whitespace-only JobId", () => {
+    const record = { JobId: "  \t ", Name: "Adam", Address: "London" };
+    const result = validateRecords([record]);
+
+    expect(result.validRecords).toEqual([]);
+    expect(result.failedRecords).toEqual([
+      { record, errors: ["JobId is required"] },
+    ]);
+  });
+
+  it("rejects an empty Name", () => {
+    const record = { JobId: "123", Name: "", Address: "London" };
+    const result = validateRecords([record]);
+
+    expect(result.validRecords).toEqual([]);
+    expect(result.failedRecords).toEqual([
+      { record, errors: ["Name must not be empty"] },
+    ]);
+  });
+
+  it("rejects a whitespace-only Name", () => {
+    const record = { JobId: "123", Name: "  \t ", Address: "London" };
+    const result = validateRecords([record]);
+
+    expect(result.validRecords).toEqual([]);
+    expect(result.failedRecords).toEqual([
+      { record, errors: ["Name must not be empty"] },
+    ]);
+  });
+
+  it("rejects an empty Address", () => {
+    const record = { JobId: "123", Name: "Adam", Address: "" };
+    const result = validateRecords([record]);
+
+    expect(result.validRecords).toEqual([]);
+    expect(result.failedRecords).toEqual([
+      { record, errors: ["Address must not be empty"] },
+    ]);
+  });
+
+  it("rejects a whitespace-only Address", () => {
+    const record = { JobId: "123", Name: "Adam", Address: "  \t " };
+    const result = validateRecords([record]);
+
+    expect(result.validRecords).toEqual([]);
+    expect(result.failedRecords).toEqual([
+      { record, errors: ["Address must not be empty"] },
+    ]);
+  });
+
+  it("trims required string fields before storing and checking duplicate JobIds", () => {
+    const result = validateRecords([
+      { JobId: " 123 ", Name: " Adam ", Address: " London " },
+      { JobId: "123", Name: "Bob", Address: "Cambridge" },
+    ]);
+
+    expect(result.validRecords).toEqual([
+      { JobId: "123", Name: "Adam", Address: "London" },
+    ]);
+    expect(result.failedRecords).toEqual([
+      {
+        record: { JobId: "123", Name: "Bob", Address: "Cambridge" },
+        errors: ["Duplicate JobId: 123"],
+      },
+    ]);
+  });
+
   it("accepts the first occurrence of a JobId and rejects subsequent occurrences", () => {
     const firstRecord = { JobId: "123", Name: "Adam", Address: "London" };
     const duplicateRecord = {
@@ -198,16 +275,35 @@ describe("validateRecords", () => {
 describe("validateAndParseCSV", () => {
   const fixturesDirectory = join(__dirname, "..", "fixtures", "csvFiles");
 
-  it.each(["Customer1.csv", "Customer2.csv"])(
-    "parses and validates all records in %s",
-    (fixtureName) => {
-      const csv = readFileSync(join(fixturesDirectory, fixtureName));
-      const result = validateAndParseCSV(csv);
+  it("parses and validates all records in Customer1.csv", () => {
+    const csv = readFileSync(join(fixturesDirectory, "Customer1.csv"));
+    const result = validateAndParseCSV(csv);
 
-      expect(result.validRecords).toEqual(parseCSVFile(csv));
-      expect(result.failedRecords).toEqual([]);
-    },
-  );
+    expect(result.validRecords).toEqual(
+      parseCSVFile(csv).map((record) => ({
+        ...record,
+        JobId: record.JobId.trim(),
+        Name: record.Name.trim(),
+        Address: record.Address.trim(),
+      })),
+    );
+    expect(result.failedRecords).toEqual([]);
+  });
+
+  it("parses and validates all records in Customer2.csv", () => {
+    const csv = readFileSync(join(fixturesDirectory, "Customer2.csv"));
+    const result = validateAndParseCSV(csv);
+
+    expect(result.validRecords).toEqual(
+      parseCSVFile(csv).map((record) => ({
+        ...record,
+        JobId: record.JobId.trim(),
+        Name: record.Name.trim(),
+        Address: record.Address.trim(),
+      })),
+    );
+    expect(result.failedRecords).toEqual([]);
+  });
 
   it("returns parsed but invalid records in failedRecords", () => {
     const csv = Buffer.from(

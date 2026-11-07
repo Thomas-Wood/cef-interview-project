@@ -57,8 +57,12 @@ export function validateRecords(
     if (rawJobId === null || rawJobId === undefined) {
       errors.push("JobId is required");
     } else {
-      jobId = typeof rawJobId === "string" ? rawJobId : String(rawJobId);
-      if (seenJobIds.has(jobId)) {
+      jobId = (
+        typeof rawJobId === "string" ? rawJobId : String(rawJobId)
+      ).trim();
+      if (jobId.length === 0) {
+        errors.push("JobId is required");
+      } else if (seenJobIds.has(jobId)) {
         errors.push(`Duplicate JobId: ${jobId}`);
       } else {
         seenJobIds.add(jobId);
@@ -67,14 +71,20 @@ export function validateRecords(
 
     // Name check
     if (typeof fields.Name === "string") {
-      name = fields.Name;
+      name = fields.Name.trim();
+      if (name.length === 0) {
+        errors.push("Name must not be empty");
+      }
     } else {
       errors.push("Name must be a non-null string");
     }
 
     // Address check
     if (typeof fields.Address === "string") {
-      address = fields.Address;
+      address = fields.Address.trim();
+      if (address.length === 0) {
+        errors.push("Address must not be empty");
+      }
     } else {
       errors.push("Address must be a non-null string");
     }
