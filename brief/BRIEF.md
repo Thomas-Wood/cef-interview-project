@@ -45,7 +45,7 @@ One record is broken by extra line breaks in the address. This should be handled
 
 - Optional (several rows missing this data so appears normal for this data set. **Assumed contact is optional**)
 - String
-- Must conform to an email or phone number structure
+- The field is used for both emails and phone numbers including extensions which makes it very difficult to programatically separate them with confidence. The field is likely a user input into a free text box so consistent formatting shouldn't be relied upon. No further checks on the data can be reasonably done without more context.
 
 # Infrastructure Design
 
