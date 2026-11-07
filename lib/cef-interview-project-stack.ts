@@ -37,7 +37,9 @@ export class CefInterviewProjectStack extends Stack {
       },
       sortKey: { name: "JobId", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
       removalPolicy: RemovalPolicy.RETAIN,
     });
   }
@@ -64,7 +66,10 @@ export class CefInterviewProjectStack extends Stack {
           JOBS_TABLE_NAME: this.jobTable.tableName,
           S3_BUCKET_NAME: this.s3Bucket.bucketName,
         },
-        logRetention: logs.RetentionDays.ONE_MONTH,
+        logGroup: new logs.LogGroup(this, "CustomerFileProcessingLogGroup", {
+          retention: logs.RetentionDays.ONE_MONTH,
+          removalPolicy: RemovalPolicy.RETAIN,
+        }),
         description:
           "Lambda function to process customer files and store job information in DynamoDB",
         memorySize: 1024,
