@@ -21,8 +21,8 @@ export async function handler(event: unknown): Promise<void> {
   // Check the event is an S3 event (so a test event from the Lambda console doesn't trigger an error)
   try {
     records = parseS3Records(event);
-  } catch (error) {
-    console.warn("Ignoring invocation: Not a valid S3 event", error);
+  } catch {
+    console.warn("Ignoring invocation: Not a valid S3 event");
     return;
   }
 
@@ -76,10 +76,11 @@ export async function handler(event: unknown): Promise<void> {
 
     // Log failed records together
     if (recordValidationResult.failedRecords.length > 0) {
-      console.warn(
-        "Skipping invalid customer records",
-        recordValidationResult.failedRecords,
-      );
+      console.warn("Skipping invalid customer records", {
+        bucket,
+        key,
+        jobIds: getJobIds(recordValidationResult.failedRecords),
+      });
     }
 
     // Store valid records and keep track of any the database could not write.
@@ -91,7 +92,9 @@ export async function handler(event: unknown): Promise<void> {
 
     if (failedStorageRecords.length > 0) {
       console.error("Some DynamoDB records were not written:", {
-        records: failedStorageRecords,
+        bucket,
+        key,
+        jobIds: failedStorageRecords.map(({ JobId }) => JobId),
       });
     }
   }
@@ -139,4 +142,10 @@ function parseS3Records(event: unknown): S3ObjectRecord[] {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function getJobIds(records: readonly { record: unknown }[]): string[] {
+  return records.flatMap(({ record }) =>
+    isRecord(record) && typeof record.JobId === "string" ? [record.JobId] : [],
+  );
 }

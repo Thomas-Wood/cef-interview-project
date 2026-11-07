@@ -113,21 +113,23 @@ describe("JobDataStore", () => {
     expect(client.send).toHaveBeenCalledTimes(6);
   });
 
-  it("logs the DynamoDB error and all records not handled", async () => {
+  it("logs only the JobIds when a DynamoDB request fails", async () => {
     const dataStore = new JobDataStore("JobsTable");
     const client = jest.mocked(DynamoDBDocumentClient.from).mock.results[0]
       .value;
     const consoleError = jest.spyOn(console, "error").mockImplementation();
-    const requestError = new Error("DynamoDB unavailable");
-    jest.mocked(client.send).mockRejectedValueOnce(requestError);
+    jest.mocked(client.send).mockRejectedValueOnce(new Error("DynamoDB unavailable"));
 
     await expect(
       dataStore.writeJobRecords([record], "Customer A"),
     ).resolves.toEqual([record]);
     expect(consoleError).toHaveBeenCalledWith(
       "DynamoDB batch write failed",
-      expect.objectContaining({ error: requestError }),
+      { jobIds: ["JOB-123"] },
     );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(record.Name);
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(record.Address);
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(record.Contact);
   });
 
   it("continues with later batches after a request error and logs failures together", async () => {

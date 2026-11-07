@@ -56,10 +56,9 @@ export class JobDataStore {
               },
             }),
           );
-        } catch (error) {
+        } catch {
           console.error("DynamoDB batch write failed", {
-            tableName: this.tableName,
-            error,
+            jobIds: pendingRecords.map(({ JobId }) => JobId),
           });
           failedRecords.push(...pendingRecords);
           break;

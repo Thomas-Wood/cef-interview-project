@@ -29,8 +29,26 @@ describe("customer file processing handler", () => {
     Address: "London",
   };
   const failedRecord = {
-    record: { JobId: null },
+    record: {
+      JobId: null,
+      Name: "PRIVATE-NAME",
+      Address: "PRIVATE-ADDRESS",
+      Contact: "private@example.com",
+    },
     errors: ["JobId is required"],
+  };
+  const failedRecordWithJobId = {
+    record: {
+      JobId: "JOB-INVALID",
+      Name: "PRIVATE-NAME",
+      Address: "PRIVATE-ADDRESS",
+      Contact: "private@example.com",
+    },
+    errors: ["Name must not be empty"],
+  };
+  const failedNonObjectRecord = {
+    record: "PRIVATE-RECORD",
+    errors: ["Record must be an object"],
   };
 
   function s3Event(key = "CustomerA.csv") {
@@ -54,7 +72,6 @@ describe("customer file processing handler", () => {
 
     expect(warn).toHaveBeenCalledWith(
       "Ignoring invocation: Not a valid S3 event",
-      expect.any(Error),
     );
     expect(s3Send).not.toHaveBeenCalled();
   }
@@ -68,7 +85,11 @@ describe("customer file processing handler", () => {
     });
     jest.mocked(validateAndParseCSV).mockReturnValue({
       validRecords: [validRecord],
-      failedRecords: [failedRecord],
+      failedRecords: [
+        failedRecord,
+        failedRecordWithJobId,
+        failedNonObjectRecord,
+      ],
     });
   });
 
@@ -158,7 +179,7 @@ describe("customer file processing handler", () => {
     s3Send.mockResolvedValueOnce({});
 
     await expect(handler(s3Event())).rejects.toThrow(
-      "S3 returned an empty response body for s3://customer-files/CustomerA.csv",
+      "S3 returned an empty response body",
     );
   });
 
@@ -233,14 +254,20 @@ describe("customer file processing handler", () => {
       [validRecord],
       "Customer A",
     );
-    expect(warn).toHaveBeenCalledWith("Skipping invalid customer records", [
-      failedRecord,
-    ]);
+    expect(warn).toHaveBeenCalledWith("Skipping invalid customer records", {
+      bucket: "customer-files",
+      key: "folder/Customer A.csv",
+      jobIds: ["JOB-INVALID"],
+    });
     expect(info).toHaveBeenCalledWith("File retrieved", {
       bucket: "customer-files",
       key: "folder/Customer A.csv",
       byteLength: 3,
     });
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("PRIVATE-NAME");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("PRIVATE-ADDRESS");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("private@example.com");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("PRIVATE-RECORD");
   });
 
   it("does not log failed records when all records are valid", async () => {
@@ -259,7 +286,8 @@ describe("customer file processing handler", () => {
     const failedStorageRecord = {
       JobId: "JOB-FAILED",
       Name: "Grace",
-      Address: "Cambridge",
+      Address: "PERSONAL-ADDRESS",
+      Contact: "personal@example.com",
     };
     const writeJobRecords = jest.fn().mockResolvedValue([failedStorageRecord]);
     jest
@@ -274,8 +302,14 @@ describe("customer file processing handler", () => {
     expect(error).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith(
       "Some DynamoDB records were not written:",
-      { records: [failedStorageRecord] },
+      {
+        bucket: "customer-files",
+        key: "CustomerA.csv",
+        jobIds: ["JOB-FAILED"],
+      },
     );
+    expect(JSON.stringify(error.mock.calls)).not.toContain("PERSONAL-ADDRESS");
+    expect(JSON.stringify(error.mock.calls)).not.toContain("personal@example.com");
   });
 
   it("throws if the CSV key does not identify a customer filename", async () => {
