@@ -1,4 +1,5 @@
 import {
+  Duration,
   RemovalPolicy,
   Stack,
   StackProps,
@@ -67,6 +68,7 @@ export class CefInterviewProjectStack extends Stack {
         description:
           "Lambda function to process customer files and store job information in DynamoDB",
         memorySize: 1024,
+        timeout: Duration.minutes(15),
       },
     );
     this.s3Bucket.grantRead(this.customerFileProcessingLambda);
