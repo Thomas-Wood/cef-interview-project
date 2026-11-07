@@ -21,11 +21,11 @@ export class JobDataStore {
     this.dynamoDb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
   }
 
-  // Writes all records to the DB and logs any records that could not be stored.
+  // Writes all records to the DB and returns any records that could not be stored.
   async writeJobRecords(
     records: readonly CustomerRecord[],
     customerName: string,
-  ) {
+  ): Promise<CustomerRecord[]> {
     const failedRecords: CustomerRecord[] = [];
 
     // Loop over each chunk of records
@@ -99,11 +99,6 @@ export class JobDataStore {
       }
     }
 
-    if (failedRecords.length > 0) {
-      console.error("Some DynamoDB records were not written:", {
-        tableName: this.tableName,
-        records: failedRecords,
-      });
-    }
+    return failedRecords;
   }
 }

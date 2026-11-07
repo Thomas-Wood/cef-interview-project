@@ -32,7 +32,7 @@ describe("JobDataStore", () => {
 
     await expect(
       dataStore.writeJobRecords(records, "Customer A"),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual([]);
 
     const expectedRequest = {
       RequestItems: {
@@ -64,7 +64,9 @@ describe("JobDataStore", () => {
       JobId: `JOB-${index}`,
     }));
 
-    await dataStore.writeJobRecords(records, "Customer A");
+    await expect(
+      dataStore.writeJobRecords(records, "Customer A"),
+    ).resolves.toEqual([]);
 
     const requests = jest.mocked(BatchWriteCommand).mock.calls;
     expect(requests).toHaveLength(2);
@@ -87,7 +89,7 @@ describe("JobDataStore", () => {
 
     const writePromise = dataStore.writeJobRecords([record], "Customer A");
     await jest.advanceTimersByTimeAsync(50);
-    await expect(writePromise).resolves.toBeUndefined();
+    await expect(writePromise).resolves.toEqual([]);
     expect(client.send).toHaveBeenCalledTimes(2);
   });
 
@@ -106,11 +108,8 @@ describe("JobDataStore", () => {
 
     const writePromise = dataStore.writeJobRecords([record], "Customer A");
     await jest.runAllTimersAsync();
-    await expect(writePromise).resolves.toBeUndefined();
-    expect(consoleError).toHaveBeenCalledWith(
-      "Some DynamoDB records were not written:",
-      expect.objectContaining({ records: [record] }),
-    );
+    await expect(writePromise).resolves.toEqual([record]);
+    expect(consoleError).not.toHaveBeenCalled();
     expect(client.send).toHaveBeenCalledTimes(6);
   });
 
@@ -124,14 +123,10 @@ describe("JobDataStore", () => {
 
     await expect(
       dataStore.writeJobRecords([record], "Customer A"),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual([record]);
     expect(consoleError).toHaveBeenCalledWith(
       "DynamoDB batch write failed",
       expect.objectContaining({ error: requestError }),
-    );
-    expect(consoleError).toHaveBeenCalledWith(
-      "Some DynamoDB records were not written:",
-      expect.objectContaining({ records: [record] }),
     );
   });
 
@@ -151,13 +146,9 @@ describe("JobDataStore", () => {
 
     await expect(
       dataStore.writeJobRecords(records, "Customer A"),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual(records.slice(0, 25));
 
     expect(client.send).toHaveBeenCalledTimes(2);
-    expect(consoleError).toHaveBeenCalledWith(
-      "Some DynamoDB records were not written:",
-      expect.objectContaining({ records: records.slice(0, 25) }),
-    );
   });
 
   it("does not send a request for an empty record list", async () => {
@@ -165,7 +156,7 @@ describe("JobDataStore", () => {
 
     await expect(
       dataStore.writeJobRecords([], "Customer A"),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual([]);
 
     const client = jest.mocked(DynamoDBDocumentClient.from).mock.results[0]
       .value;
