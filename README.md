@@ -14,6 +14,19 @@ BREAKING CHANGE: `extends` key in config file is now used for extending other co
 docs: updated readme file
 chore: project setup
 
+## Stack overview
+
+This stack consists of an S3 bucket, a lambda which is triggered by S3 upload events, and a Dynamo database to store valid records from the input files.
+
+## Data flow
+
+1. A file is uploaded into S3 at any location (Could be via SFTP but that has not been setup on this project).
+2. This triggeres an event which starts the lambda
+3. The file is checked that it's a csv then starts to process it
+4. Each value is checks to make sure it is present and of the correct data type where required. Job ids must also be unique within the file. Future files with duplicates ids from an earlier file will overwrite the original.
+5. Valid and invalid records are handled. Invalid ones are logged (could be setup with other systems later on such as being written back to S3, making sure not to cause an infinite loop with the events).
+6. Valid records are sent to DynamoDB. Unprocessable records are retried then eventually returned and logged. The DynamoDB setup uses the Customer name (from the file) as the partition key and the job id for the sort key.
+
 ## Useful commands
 
 - `npm run build` type-check the project
