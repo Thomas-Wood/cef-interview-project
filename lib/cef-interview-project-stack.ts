@@ -30,7 +30,11 @@ export class CefInterviewProjectStack extends Stack {
 
   private createDynamoDBTable() {
     this.jobTable = new dynamodb.Table(this, "JobsTable", {
-      partitionKey: { name: "customerId", type: dynamodb.AttributeType.STRING },
+      partitionKey: {
+        name: "customerName",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: { name: "JobId", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
       removalPolicy: RemovalPolicy.RETAIN,
