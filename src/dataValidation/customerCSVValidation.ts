@@ -120,7 +120,9 @@ export function validateRecords(
 export function parseCSVFile(
   fileContents: Buffer,
 ): Array<Record<string, string>> {
-  const csvString = fileContents.toString("utf-8");
+  const csvString = fileContents
+    .toString("utf-8")
+    .replace(/\r\n|\r|\n/g, "\r\n");
   const records = parse<Record<string, string>>(csvString, {
     columns: headings,
     from_line: 2,

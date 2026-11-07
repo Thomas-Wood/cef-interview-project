@@ -27,6 +27,10 @@ This stack consists of an S3 bucket, a lambda which is triggered by S3 upload ev
 5. Valid and invalid records are handled. Invalid ones are logged (could be setup with other systems later on such as being written back to S3, making sure not to cause an infinite loop with the events).
 6. Valid records are sent to DynamoDB. Unprocessable records are retried then eventually returned and logged. The DynamoDB setup uses the Customer name (from the file) as the partition key and the job id for the sort key.
 
+## Github workflows
+
+This project contains a basic Github workflow that builds the code and runs the tests on a merge to master.
+
 ## Useful commands
 
 - `npm run build` type-check the project

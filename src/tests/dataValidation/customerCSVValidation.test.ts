@@ -91,6 +91,21 @@ describe("parseCSVFile", () => {
     ]);
   });
 
+  it("normalizes multiline fields across platform line endings", () => {
+    const csv = Buffer.from(
+      'JobId,Name,Address,Contact\n1,Test,"First line\nSecond line",test@example.com',
+    );
+
+    expect(parseCSVFile(csv)).toEqual([
+      {
+        JobId: "1",
+        Name: "Test",
+        Address: "First line\r\nSecond line",
+        Contact: "test@example.com",
+      },
+    ]);
+  });
+
   it("throws when the CSV is malformed", () => {
     const csv = Buffer.from('customerId,name\n123,"Ada\n');
 
